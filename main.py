@@ -1,11 +1,11 @@
 from fastapi import FastAPI, Depends, Request, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
-from datetime import datetime
+from datetime import datetime, timezone
 
 from database import get_db, engine, Base
 import schemas
-import user_service as MenuItemuser_service
+import user_service
 
 app = FastAPI()
 
@@ -20,13 +20,13 @@ def build_response(status_code: int, message: str, path: str, data: any = None, 
             "error": error,
             "data": data,
             "path": path,
-            "timestamp": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+            "timestamp": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
         }
     )
 
 @app.post("/menu-items", status_code=status.HTTP_201_CREATED)
 def create_menu_item(request: Request, payload: schemas.MenuItemCreate, db: Session = Depends(get_db)):
-    existing_item = MenuItemuser_service.get_by_dish_code(db, payload.dish_code)
+    existing_item = user_service.get_by_dish_code(db, payload.dish_code)
     if existing_item:
         return build_response(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -35,7 +35,7 @@ def create_menu_item(request: Request, payload: schemas.MenuItemCreate, db: Sess
             path=str(request.url.path)
         )
     try:
-        new_item = MenuItemuser_service.create(db, payload)
+        new_item = user_service.create(db, payload)
         data_res = schemas.MenuItemResponseData.model_validate(new_item).model_dump()
         return build_response(
             status_code=status.HTTP_201_CREATED, 
@@ -53,7 +53,7 @@ def create_menu_item(request: Request, payload: schemas.MenuItemCreate, db: Sess
 
 @app.get("/menu-items")
 def get_all_menu_items(request: Request, db: Session = Depends(get_db)):
-    items = MenuItemuser_service.get_all(db)
+    items = user_service.get_all(db)
     data_res = [schemas.MenuItemResponseData.model_validate(item).model_dump() for item in items]
     return build_response(
         status_code=status.HTTP_200_OK, 
@@ -64,7 +64,7 @@ def get_all_menu_items(request: Request, db: Session = Depends(get_db)):
 
 @app.get("/menu-items/{item_id}")
 def get_menu_item_detail(item_id: int, request: Request, db: Session = Depends(get_db)):
-    item = MenuItemuser_service.get_by_id(db, item_id)
+    item = user_service.get_by_id(db, item_id)
     if not item:
         return build_response(
             status_code=status.HTTP_404_NOT_FOUND, 
@@ -82,7 +82,7 @@ def get_menu_item_detail(item_id: int, request: Request, db: Session = Depends(g
 
 @app.put("/menu-items/{item_id}")
 def update_menu_item(item_id: int, request: Request, payload: schemas.MenuItemUpdate, db: Session = Depends(get_db)):
-    item = MenuItemuser_service.get_by_id(db, item_id)
+    item = user_service.get_by_id(db, item_id)
     if not item:
         return build_response(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -92,7 +92,7 @@ def update_menu_item(item_id: int, request: Request, payload: schemas.MenuItemUp
         )
     try:
         if payload.dish_code:
-            existing_code = MenuItemuser_service.get_by_dish_code(db, payload.dish_code)
+            existing_code = user_service.get_by_dish_code(db, payload.dish_code)
             if existing_code and existing_code.id != item_id:
                 return build_response(
                     status_code=status.HTTP_400_BAD_REQUEST, 
@@ -101,7 +101,7 @@ def update_menu_item(item_id: int, request: Request, payload: schemas.MenuItemUp
                     path=str(request.url.path)
                 )
         
-        updated_item = MenuItemuser_service.update(db, item, payload)
+        updated_item = user_service.update(db, item, payload)
         data_res = schemas.MenuItemResponseData.model_validate(updated_item).model_dump()
         return build_response(
             status_code=status.HTTP_200_OK, 
@@ -118,7 +118,7 @@ def update_menu_item(item_id: int, request: Request, payload: schemas.MenuItemUp
 
 @app.delete("/menu-items/{item_id}")
 def delete_menu_item(item_id: int, request: Request, db: Session = Depends(get_db)):
-    item = MenuItemuser_service.get_by_id(db, item_id)
+    item = user_service.get_by_id(db, item_id)
     if not item:
         return build_response(
             status_code=status.HTTP_404_NOT_FOUND, 
@@ -127,7 +127,7 @@ def delete_menu_item(item_id: int, request: Request, db: Session = Depends(get_d
             path=str(request.url.path)
         )
     try:
-        MenuItemuser_service.delete(db, item)
+        user_service.delete(db, item)
         return build_response(
             status_code=status.HTTP_200_OK, 
             message="Xóa món ăn thành công", 
