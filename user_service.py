@@ -19,7 +19,7 @@ def create(db: Session, payload: schemas.MenuItemCreate):
         db.refresh(new_item)
         return new_item
     except Exception as e:
-        db.rollback()  # Khôi phục dữ liệu nếu MySQL lỗi
+        db.rollback()
         raise e
 
 def update(db: Session, item: models.MenuItem, payload: schemas.MenuItemUpdate):
@@ -31,7 +31,7 @@ def update(db: Session, item: models.MenuItem, payload: schemas.MenuItemUpdate):
         db.refresh(item)
         return item
     except Exception as e:
-        db.rollback()  # Khôi phục dữ liệu nếu MySQL lỗi
+        db.rollback()
         raise e
 
 def delete(db: Session, item: models.MenuItem):
@@ -40,5 +40,5 @@ def delete(db: Session, item: models.MenuItem):
         db.commit()
         return True
     except Exception as e:
-        db.rollback()  # Khôi phục dữ liệu nếu MySQL lỗi
+        db.rollback()
         raise e
